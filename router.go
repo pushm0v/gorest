@@ -10,15 +10,7 @@ import (
 )
 
 func RestRouter() *mux.Router {
-	r := mux.NewRouter()
-	api := r.PathPrefix("/api/v1").Subrouter()
 
-	customerRouter(api)
-	r.Use(LoggingMiddleware)
-	return r
-}
-
-func customerRouter(r *mux.Router) {
 	var dbConn, err = NewDBConnection("customer.db")
 	if err != nil {
 		log.Fatalf("DB Connection error : %v", err)
@@ -28,10 +20,19 @@ func customerRouter(r *mux.Router) {
 	var custService = service.NewCustomerService(custRepository)
 	var custHandler = NewCustomerHandler(custService)
 
-	r.HandleFunc("/customers/{id}", custHandler.Get).Methods(http.MethodGet)
+	r := mux.NewRouter()
+	r.HandleFunc("/api/v1/customers/{id}", custHandler.Get).Methods(http.MethodGet)
+	api := r.PathPrefix("/api/v1").Subrouter()
+
+	customerRouter(api, custHandler)
+	return r
+}
+
+func customerRouter(r *mux.Router, custHandler *CustomerHandler) {
 	r.HandleFunc("/customers", custHandler.Post).Methods(http.MethodPost)
 	r.HandleFunc("/customers/{id}", custHandler.Put).Methods(http.MethodPut)
 	r.HandleFunc("/customers/{id}", custHandler.Delete).Methods(http.MethodDelete)
 	r.HandleFunc("/", custHandler.NotFound)
+	r.Use(LoggingMiddleware)
 }
 

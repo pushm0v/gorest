@@ -1,12 +1,15 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/gorilla/mux"
+	"github.com/pushm0v/gorest/client"
 	"github.com/pushm0v/gorest/model"
 	"github.com/pushm0v/gorest/repository"
 	"github.com/pushm0v/gorest/service"
-	"log"
-	"net/http"
 )
 
 func RestRouter() *mux.Router {
@@ -26,7 +29,9 @@ func customerRouter(r *mux.Router) {
 	dbConn.AutoMigrate(&model.Customer{})
 	var custRepository = repository.NewCustomerRepository(dbConn)
 	var custService = service.NewCustomerService(custRepository)
-	var custHandler = NewCustomerHandler(custService)
+	var gorestClient = client.NewGorestNotif(os.Getenv("GOREST_NOTIF_ADDR"))
+	var notifService = service.NewNotifService(gorestClient)
+	var custHandler = NewCustomerHandler(custService, notifService)
 
 	r.HandleFunc("/customers/{id}", custHandler.Get).Methods(http.MethodGet)
 	r.HandleFunc("/customers", custHandler.Post).Methods(http.MethodPost)
@@ -34,4 +39,3 @@ func customerRouter(r *mux.Router) {
 	r.HandleFunc("/customers/{id}", custHandler.Delete).Methods(http.MethodDelete)
 	r.HandleFunc("/", custHandler.NotFound)
 }
-

@@ -3,20 +3,25 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/pushm0v/gorest/model"
-	"github.com/pushm0v/gorest/service"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"github.com/pushm0v/gorest/model"
+	"github.com/pushm0v/gorest/service"
 )
 
-type CustomerHandler struct{
-	custService service.CustomerService
+type CustomerHandler struct {
+	custService  service.CustomerService
+	notifService service.NotifService
 }
 
-func NewCustomerHandler(customerService service.CustomerService) *CustomerHandler {
-	return &CustomerHandler{custService: customerService}
+func NewCustomerHandler(customerService service.CustomerService, notifService service.NotifService) *CustomerHandler {
+	return &CustomerHandler{
+		custService:  customerService,
+		notifService: notifService,
+	}
 }
 
 func (s *CustomerHandler) responseBuilder(w http.ResponseWriter, message interface{}) {
@@ -67,7 +72,7 @@ func (s *CustomerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.custService.CreateCustomer(cust)
+	cust, err = s.custService.CreateCustomer(cust)
 	if err != nil {
 		errMsg := fmt.Sprintf("Create customer error : %v", err)
 
@@ -75,6 +80,12 @@ func (s *CustomerHandler) Post(w http.ResponseWriter, r *http.Request) {
 		s.responseBuilder(w, errMsg)
 		return
 	}
+
+	err = s.notifService.SendEmailToCustomerCreated(cust)
+	if err != nil {
+		log.Printf("Error sending email : %v\n", err)
+	}
+
 	w.WriteHeader(http.StatusCreated)
 	s.responseBuilder(w, "customer created")
 }
@@ -99,7 +110,7 @@ func (s *CustomerHandler) Put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.custService.UpdateCustomer(custID, cust)
+	_, err = s.custService.UpdateCustomer(custID, cust)
 	if err != nil {
 		errMsg := fmt.Sprintf("Update customer error : %v", err)
 

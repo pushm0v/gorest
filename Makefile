@@ -12,6 +12,7 @@ help:
 	@echo '    make build                 Compile the project.'
 	@echo '    make run                   Build then run the project.'
 	@echo '    make loadtest              Run load test using K6.'
+	@echo '    make package               Build container.'
 	@echo
 
 build:
@@ -25,3 +26,7 @@ run: build
 loadtest:
 	@echo "Running load test using K6"
 	k6 run test/k6.js
+
+package:
+	@echo "Build container from Dockerfile"
+	docker build -t ${APP_NAME}:latest .
